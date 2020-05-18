@@ -1,0 +1,355 @@
+#pragma GCC optimize("Ofast")
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using db = double;
+using ld = long double;
+template<typename T> using V = vector<T>;
+template<typename T> using VV = vector<vector<T>>;
+#define fs first
+#define sc second
+#define pb push_back
+#define mp make_pair
+#define mt make_tuple
+#define eb emplace_back
+#define lb lower_bound
+#define ub upper_bound
+#define all(v) (v).begin(),(v).end()
+#define siz(v) (ll)(v).size()
+#define rep(i,a,n) for(ll i=a;i<(ll)(n);++i)
+#define repr(i,a,n) for(ll i=n-1;(ll)a<=i;--i)
+#define ENDL '\n'
+typedef pair<int,int> Pi;
+typedef pair<ll,ll> PL;
+constexpr ll mod = 1000000007;
+constexpr ll INF = 1000000099;
+constexpr ll LINF = (ll)(1e18 +99);
+const vector<ll> dx={-1,1,0,0,-1,-1,1,1},dy={0,0,-1,1,-1,1,-1,1};
+template<typename T,typename U> inline bool chmin(T& t, const U& u){if(t>u){t=u;return 1;}return 0;}
+template<typename T,typename U> inline bool chmax(T& t, const U& u){if(t<u){t=u;return 1;}return 0;}
+template<typename T> inline T gcd(T a,T b){return b?gcd(b,a%b):a;}
+
+template<typename T,typename Y> inline T mpow(T a, Y n) {
+  T res = 1;
+  for(;n;n>>=1) {
+    if (n & 1) res = res * a;
+    a = a * a;
+  }
+  return res;
+}
+
+template<typename T,typename Y>
+ostream& operator<<(ostream& os,const pair<T,Y>& p){
+   return os<<"{"<<p.fs<<","<<p.sc<<"}";
+}
+template<typename T> ostream& operator<<(ostream& os,const V<T>& v){
+   os<<"{";
+  for(auto e:v)os<<e<<",";
+  return os<<"}";
+}
+template<typename ...Args>
+void debug(Args&... args){
+  for(auto const& x:{args...}){
+    cerr<<x<<' ';
+  }
+  cerr<<ENDL;
+}
+
+random_device seed_gen;
+mt19937_64 rnd(seed_gen());
+
+int get_rnd(int st,int ue){
+  uniform_int_distribution<int> a(st,ue);
+  return a(rnd);
+}
+
+const int NUMMAX=10;
+
+int w,h,mynum,opnum,totalpellet,msco,osco;
+V<int> myx(NUMMAX),myy=myx,opx=myx,opy=myx,mytype=myx,optype=myx,
+myfast(NUMMAX,0),opfast=myfast,mywait=myfast,opwait=mywait,tx(NUMMAX),ty=tx,
+myprex,myprey;
+V<bool> myalive,opalive;
+VV<char> e;
+VV<int> sco(100,V<int>(100,0)),lastupd=sco;
+V<pair<int,int>> v(NUMMAX,{-INF,-INF});
+
+
+int typenum(string s){
+  if(s==string("ROCK"))return 0;
+  else if(s==string("PAPER"))return 2;
+  else return 1;
+}
+
+void decidetarget(){
+  deque<int> q;//x,y,distance,score_sum,id,fromx,fromy,
+  VV<bool> used(w,V<bool>(h,false));
+  v.assign(NUMMAX,{-INF,-INF});
+
+  rep(i,1,mynum+1){
+    if(!myalive[i])continue;
+    used[myx[i]][myy[i]]=true;
+
+    rep(j,0,4){
+      int nex=(myx[i]+dx[j]+w)%w,ney=(myy[i]+dy[j]+h)%h;
+
+      if(used[nex][ney] || e[nex][ney]=='#')continue;
+
+      used[nex][ney]=true;
+      q.pb(nex);
+      q.pb(ney);
+      q.pb(1);
+      q.pb(0);
+      q.pb(i);
+      q.pb(nex);
+      q.pb(ney);
+    }
+  }
+
+  while(q.size()){
+    int x,y,dis,score,idx,frx,fry;
+    x=q.front();q.pop_front();
+    y=q.front();q.pop_front();
+    dis=q.front();q.pop_front();
+    ++dis;
+    score=q.front();q.pop_front();
+    score+=sco[x][y];
+    idx=q.front();q.pop_front();
+    frx=q.front();q.pop_front();
+    fry=q.front();q.pop_front();
+
+    if(chmax(v[idx],mp(score,-dis))){//評価基準
+      tx[idx]=frx;
+      ty[idx]=fry;
+    }
+
+    if(totalpellet-msco-osco <=20 && v[idx].fs>0 && dis>7)continue;//枝刈り
+
+    rep(i,0,4){
+      int nex=(x+dx[i]+w)%w,ney=(y+dy[i]+h)%h;
+
+      if(used[nex][ney] || e[nex][ney]=='#')continue;
+
+      used[nex][ney]=true;
+      q.pb(nex);
+      q.pb(ney);
+      q.pb(dis);
+      q.pb(score);
+      q.pb(idx);
+      q.pb(frx);
+      q.pb(fry);
+    }
+  }
+
+  rep(i,1,mynum+1){
+    if(!myalive[i])continue;
+    if(v[i]==mp((int)-INF,(int)-INF)){
+      tx[i]=w/2;
+      ty[i]=h/w;
+    }
+  }
+  return;
+}
+
+int detect(int x,int y){
+  rep(i,1,opnum+1){
+    if(!opalive[i])continue;
+
+    rep(j,0,8){
+      int nex=(x+dx[j]+w)%w,ney=(y+dy[j]+h)%h;
+
+      if(nex==opx[i] && ney==opy[i])  {
+        return optype[i];
+      }    
+    }
+  }
+  rep(i,1,opnum+1){
+    if(!opalive[i])continue;
+
+    rep(j,0,4){
+      int nex=(x+(2*dx[j])+w)%w,ney=(y+(2*dy[j])+h)%h;
+
+      if(nex==opx[i] && ney==opy[i])  {
+        return optype[i];
+      }    
+    }
+  }
+  return INF;
+}
+
+int get_dangerid(int x,int y){
+  rep(i,1,opnum+1){
+    if(!opalive[i])continue;
+
+    rep(j,0,8){
+      int nex=(x+dx[j]+w)%w,ney=(y+dy[j]+h)%h;
+
+      if(nex==opx[i] && ney==opy[i])  {
+        return i;
+      }    
+    }
+  }
+  rep(i,1,opnum+1){
+    if(!opalive[i])continue;
+
+    rep(j,0,4){
+      int nex=(x+(2*dx[j])+w)%w,ney=(y+(2*dy[j])+h)%h;
+
+      if(nex==opx[i] && ney==opy[i])  {
+        return i;
+      }    
+    }
+  }
+
+  assert(false);
+  return INF;
+}
+
+Pi get_wayout(int mx,int my,int ox,int oy){
+  return mp((mx+(mx-ox)+w)%w,(my+(my-oy)+h)%h);
+}
+
+string decidetype(int op,int win){
+  if(win==false)(op+=2)%=3;
+
+  if(op==0){
+    return string("PAPER");
+  }else if(op==1){
+    return string("ROCK");
+  }else{
+    return string("SCISSORS");
+  }
+}
+
+
+
+signed main(){
+  cin.tie(0);ios::sync_with_stdio(false);
+
+  cin>>w>>h;cin.ignore();
+
+  e.assign(w,V<char>(h));
+  rep(i,0,h){
+    string tmps;
+    getline(cin, tmps);
+    rep(j,0,w)e[j][i]=tmps[j];
+  }
+  rep(i,0,w)rep(j,0,h){
+    sco[i][j]=(e[i][j]!='#');
+    totalpellet+=(e[i][j]!='#');
+  }
+
+
+  rep(turn,0,INF){
+    int pacnum;
+    cin>>msco>>osco;cin.ignore();
+    cin>>pacnum;cin.ignore();
+
+    myalive.assign(mynum+1,false);
+    opalive.assign(opnum+1,false);
+    myprex=myx,myprey=myy;
+
+    rep(i,0,pacnum){
+      int idx,x,y,speedleft,cooldown;
+      bool mine;
+      string type;
+      cin>>idx>>mine>>x>>y>>type>>speedleft>>cooldown;cin.ignore();
+      ++idx;
+
+      if(mine){
+        myx[idx]=x;
+        myy[idx]=y;
+        mytype[idx]=typenum(type);
+        myfast[idx]=speedleft;
+        mywait[idx]=cooldown;
+        myalive[idx]=true;
+        if(turn==0)++mynum;
+      }else{
+        opx[idx]=x;
+        opy[idx]=y;
+        optype[idx]=typenum(type);
+        opfast[idx]=speedleft;
+        opwait[idx]=cooldown;
+        opalive[idx]=true;
+      }
+    }
+    if(turn==0)opnum=mynum;
+
+
+    rep(i,1,mynum+1){
+      if(!myalive[i])continue;
+
+      repr(x,0,myx[i]){
+        if(e[x][myy[i]]=='#')break;
+        sco[x][myy[i]]=0;
+        lastupd[x][myy[i]]=turn;
+      }
+      rep(x,1+myx[i],w){
+        if(e[x][myy[i]]=='#')break;
+        sco[x][myy[i]]=0;
+        lastupd[x][myy[i]]=turn;
+      }
+
+      repr(y,0,myy[i]){
+        if(e[myx[i]][y]=='#')break;
+        sco[myx[i]][y]=0;
+        lastupd[myx[i]][y]=turn;
+      }
+      rep(y,1+myy[i],h){
+        if(e[myx[i]][y]=='#')break;
+        sco[myx[i]][y]=0;
+        lastupd[myx[i]][y]=turn;
+      }
+    }
+
+    int visiblePelletCount; // all pellets in sight
+    cin >> visiblePelletCount; cin.ignore();
+    rep(i,0,visiblePelletCount){
+      int x,y;cin>>x>>y>>sco[x][y];cin.ignore();
+      lastupd[x][y]=turn;
+    }
+
+    decidetarget();
+
+    rep(i,1,mynum+1){
+      if(!myalive[i])continue;
+      
+      int tmp=detect(myx[i],myy[i]);
+      if(tmp<=2){
+        int dangerid=get_dangerid(myx[i],myy[i]);
+
+        if(mywait[i]>opwait[dangerid]){
+          Pi runaway=get_wayout(myx[i],myy[i],opx[dangerid],opy[dangerid]);
+          cout<<"|"<<"MOVE "<<i-1<<" "<<runaway.fs<<" "<<runaway.sc;
+          continue;
+        }else {
+          bool win=true;
+          //if(mywait[i]==opwait[dangerid])win=false;//深読み
+
+          if(typenum(decidetype(tmp,win))==mytype[i])goto flag;
+          if(mywait[i]==0){
+            cout<<"|"<<"SWITCH "<<i-1<<" "<<decidetype(tmp,win);
+            cerr<<i-1<<" DETECT"<<tmp<<ENDL;
+            continue;
+          }
+        }
+      }
+      flag:;
+
+      if(mywait[i]==0 && v[i].fs+v[i].sc>=-1 && 4*totalpellet<=5*(msco+osco)){//speed up 条件
+        cout<<"|"<<"SPEED "<<i-1;
+        cerr<<i-1<<" SPEED UP"<<ENDL;
+        continue;
+      }
+
+      /*if(myprex[i]==myx[i] && myprey[i]==myy[i]){
+
+      }*/
+
+      cout<<"|"<<"MOVE "<<i-1<<" "<<tx[i]<<" "<<ty[i];
+      cerr<<i-1<<" MOVE TO"<<tx[i]<<" "<<ty[i]<<"to get"<<v[i]<<ENDL;
+    }
+    cout<<endl;
+  }
+
+}
